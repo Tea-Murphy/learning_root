@@ -3,7 +3,7 @@
 #include <cmath>
 #include <utility>
 
-// Генерирует точку на окружности радиуса rad (равномерно по углу)
+// Генерирует точку на окружности радиуса rad (равномерно по углу) _____________________________________________
 std::pair<double, double> randomPointOnCircle(double rad) {
     static std::mt19937 gen = []{
         std::random_device rd;
@@ -15,7 +15,22 @@ std::pair<double, double> randomPointOnCircle(double rad) {
     return {rad * std::cos(angle), rad * std::sin(angle)};
 }
 
-int main() {
+float calorimeter() {
+    // Генератор инициализируется один раз при первом вызове
+    static std::mt19937 gen(std::random_device{}());
+    // Распределение на полуинтервале [0.0, 25.2)
+    static std::uniform_real_distribution<float> dist(0.0f, 25.2f);
+    return dist(gen);
+}
+
+int main() { //________________________________________________________________________________________________
+
+    float pogr = 0.05;
+    float part_gev[7] = {25.2, 0.511, 0.105, 0.139, 0.493, 0.938, 3.097};
+    std::string part_names[7] = {"Too high", "Electron", "Muon", "Pion", 
+                                  "Kaon", "Proton", "J/psi meson"};
+
+    float energy = calorimeter();
     int q;
     double B = 0.1;
     double P;
@@ -31,7 +46,7 @@ int main() {
     double D = 2.0 * (x2 * y3 - y2 * x3);
     if (std::abs(D) < 1e-12) {
         q = 0;
-    } else if('что-то там') { //тут должно быть какое-то условие
+    //} else if('что-то там') { //тут должно быть какое-то условие
         q = -1;
     } else {
         q = 1;
@@ -43,10 +58,29 @@ int main() {
     double R = std::sqrt(a * a + b * b);
 
     P = B * q * R;
-    std::cout << "Радиус окружности: " << R << '\n';
-    std::cout << "Заряд: " << q << '\n';
-    std::cout << "Импульс частицы: " << P << std::endl;
-    return 0;
+    //ищем инвариантную массу
+    float m_inv = sqrt(energy*energy - P*P);
+    int found = 0;
 
-    //дальше ищем инвариантную массу
+    if (q==0 || std::isnan(m_inv) || m_inv>part_gev[0]){
+        std::cout << "ОШИБКА" << std::endl;
+    } else {
+        std::cout << "Радиус окружности (m): " << R << '\n';
+        std::cout << "Заряд: " << q << '\n';
+        std::cout << "Импульс: " << P << '\n';
+        std::cout << "Энергия: " << energy << '\n';
+        std::cout << "Инвариантная масса: " << m_inv << std::endl;
+        for (int j = 1; j < 7; j++) {
+            float lower = part_gev[j] * (1 - pogr);
+            float upper = part_gev[j] * (1 + pogr);
+            if (m_inv >= lower && m_inv <= upper) {
+                std::cout << "Нашли: " << part_names[j] << "\n";
+                found = 1;
+                break;
+            }
+
+        }
+        if(found==0){std::cout<<"СОВПАДЕНИЙ НЕТ"<<"\n";}
+    }
+    return 0;
 }
