@@ -2,6 +2,7 @@
 #include <random>
 #include <cmath>
 #include <utility>
+#include <limits>   // для std::numeric_limits
 
 // Генерирует точку на окружности радиуса rad (равномерно по углу) _____________________________________________
 std::pair<double, double> randomPointOnCircle(double rad) {
@@ -19,8 +20,13 @@ float calorimeter() {
     // Генератор инициализируется один раз при первом вызове
     static std::mt19937 gen(std::random_device{}());
     // Распределение на полуинтервале [0.0, 25.2)
-    static std::uniform_real_distribution<float> dist(0.0f, 25.2f);
-    return dist(gen);
+    static std::uniform_int_distribution<int> dist(0, 63503);
+    int distr = dist(gen);
+    float q[63504];
+    for(int i = 0; i<63504; i++){
+        q[i]= 25.2 - std::sqrt(i)/10;
+    }
+    return q[distr];
 }
 
 int main() { //________________________________________________________________________________________________
@@ -46,23 +52,26 @@ int main() { //_________________________________________________________________
     double D = 2.0 * (x2 * y3 - y2 * x3);
     if (std::abs(D) < 1e-12) {
         q = 0;
-    //} else if('что-то там') { //тут должно быть какое-то условие
-        q = -1;
-    } else {
-        q = 1;
-    }
+        std::cout << "ОШИБКА" << std::endl;
+    } else { 
+        if (D > 0) {
+            q = 1;      // положительный заряд
+        } else {
+            q = -1;     // отрицательный заряд
+        }
+
     double r2_sq = 0.25;      // x2^2 + y2^2
     double r3_sq = 1.0;       // x3^2 + y3^2
     double a = (r2_sq * y3 - y2 * r3_sq) / D;
     double b = (x2 * r3_sq - r2_sq * x3) / D;
     double R = std::sqrt(a * a + b * b);
 
-    P = B * q * R;
+    P = B * std::abs(q) * R;
     //ищем инвариантную массу
     float m_inv = sqrt(energy*energy - P*P);
     int found = 0;
 
-    if (q==0 || std::isnan(m_inv) || m_inv>part_gev[0]){
+    if (std::isnan(m_inv) || m_inv>part_gev[0]){
         std::cout << "ОШИБКА" << std::endl;
     } else {
         std::cout << "Радиус окружности (m): " << R << '\n';
@@ -70,6 +79,7 @@ int main() { //_________________________________________________________________
         std::cout << "Импульс: " << P << '\n';
         std::cout << "Энергия: " << energy << '\n';
         std::cout << "Инвариантная масса: " << m_inv << std::endl;
+
         for (int j = 1; j < 7; j++) {
             float lower = part_gev[j] * (1 - pogr);
             float upper = part_gev[j] * (1 + pogr);
@@ -82,5 +92,10 @@ int main() { //_________________________________________________________________
         }
         if(found==0){std::cout<<"СОВПАДЕНИЙ НЕТ"<<"\n";}
     }
+}
+
+
+
+    
     return 0;
 }
